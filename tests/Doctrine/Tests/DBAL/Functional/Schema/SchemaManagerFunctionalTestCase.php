@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\SchemaDiff;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -1575,4 +1576,41 @@ class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
         $onlineTable = $this->schemaManager->listTableDetails('test_partial_column_index');
         self::assertEquals($expected, $onlineTable->getIndexes());
     }
+
+    public function testSchemaDiffForeignKeys()
+    {
+        $schemaManager = $this->connection->getSchemaManager();
+
+        $table1 = new Table('child');
+        $table1->addColumn('id', 'integer', ['autoincrement' => true]);
+        $table1->addColumn('parent_id', 'integer');
+        $table1->setPrimaryKey(['id']);
+        $table1->addForeignKeyConstraint('parent', ['parent_id'], ['id']);
+
+        $table2 = new Table('parent');
+        $table2->addColumn('id', 'integer', ['autoincrement' => true]);
+        $table2->setPrimaryKey(['id']);
+
+        $diff = new SchemaDiff([$table1, $table2]);
+        $sqls = $diff->toSql($this->connection->getDatabasePlatform());
+
+        foreach ($sqls as $sql) {
+            $this->connection->exec($sql);
+        }
+
+        $schema = new Schema([
+            $schemaManager->listTableDetails('child'),
+            $schemaManager->listTableDetails('parent'),
+        ]);
+
+        $this->assertCount(1, $schema->getTable('child')->getForeignKeys());
+
+        $offlineSchema = new Schema([$table1, $table2]);
+
+        $diff = Comparator::compareSchemas($offlineSchema, $schema);
+        $sqls = $diff->toSql($this->connection->getDatabasePlatform());
+
+        $this->assertEquals([], $sqls);
+    }
+
 }
