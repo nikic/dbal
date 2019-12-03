@@ -248,8 +248,8 @@ abstract class AbstractPlatformTestCase extends DbalTestCase
 
     public function testGeneratesConstraintCreationSql()
     {
-        if (!$this->platform->supportsCreateDropForeignKeyConstraints()) {
-            $this->markTestSkipped("Platform does not support creating or dropping foreign key constraints.");
+        if (! $this->platform->supportsCreateDropForeignKeyConstraints()) {
+            $this->markTestSkipped('Platform does not support creating or dropping foreign key constraints.');
         }
 
         $idx = new Index('constraint_name', ['test'], true, false);

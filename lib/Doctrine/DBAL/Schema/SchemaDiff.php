@@ -2,8 +2,8 @@
 
 namespace Doctrine\DBAL\Schema;
 
-use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Internal\CommitOrderCalculator;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use function array_merge;
 
 /**
@@ -138,7 +138,7 @@ class SchemaDiff
         }
 
         $foreignKeySql = [];
-        $createFlags = AbstractPlatform::CREATE_INDEXES;
+        $createFlags   = AbstractPlatform::CREATE_INDEXES;
 
         if (! $platform->supportsCreateDropForeignKeyConstraints()) {
             $createFlags |= AbstractPlatform::CREATE_FOREIGNKEYS;
@@ -175,11 +175,13 @@ class SchemaDiff
      *
      * This is ncessary when one table depends on another while creating foreign key
      * constraints directly during CREATE TABLE.
+     *
+     * @return array<\Doctrine\DBAL\Schema\Table>
      */
-    private function getNewTablesSortedByDependencies() : array
+    private function getNewTablesSortedByDependencies()
     {
         $commitOrderCalculator = new CommitOrderCalculator();
-        $newTables = [];
+        $newTables             = [];
 
         foreach ($this->newTables as $table) {
             $newTables[$table->getName()] = true;

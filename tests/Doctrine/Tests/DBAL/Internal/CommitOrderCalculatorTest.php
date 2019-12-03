@@ -4,7 +4,6 @@ namespace Doctrine\Tests\DBAL\Internal;
 
 use Doctrine\DBAL\Internal\CommitOrderCalculator;
 use Doctrine\DBAL\Schema\Table;
-use Doctrine\Tests\OrmTestCase;
 use Doctrine\Tests\DbalTestCase;
 
 /**
@@ -16,33 +15,34 @@ use Doctrine\Tests\DbalTestCase;
  */
 class CommitOrderCalculatorTest extends DbalTestCase
 {
-    private $_calc;
+    /** @var CommitOrderCalculator */
+    private $calculator;
 
     protected function setUp()
     {
-        $this->_calc = new CommitOrderCalculator();
+        $this->calculator = new CommitOrderCalculator();
     }
 
     public function testCommitOrdering1()
     {
-        $table1 = new Table(NodeClass1::class);
-        $table2 = new Table(NodeClass2::class);
-        $table3 = new Table(NodeClass3::class);
-        $table4 = new Table(NodeClass4::class);
-        $table5 = new Table(NodeClass5::class);
+        $table1 = new Table('table1');
+        $table2 = new Table('table2');
+        $table3 = new Table('table3');
+        $table4 = new Table('table4');
+        $table5 = new Table('table5');
 
-        $this->_calc->addNode($table1->getName(), $table1);
-        $this->_calc->addNode($table2->getName(), $table2);
-        $this->_calc->addNode($table3->getName(), $table3);
-        $this->_calc->addNode($table4->getName(), $table4);
-        $this->_calc->addNode($table5->getName(), $table5);
+        $this->calculator->addNode($table1->getName(), $table1);
+        $this->calculator->addNode($table2->getName(), $table2);
+        $this->calculator->addNode($table3->getName(), $table3);
+        $this->calculator->addNode($table4->getName(), $table4);
+        $this->calculator->addNode($table5->getName(), $table5);
 
-        $this->_calc->addDependency($table1->getName(), $table2->getName(), 1);
-        $this->_calc->addDependency($table2->getName(), $table3->getName(), 1);
-        $this->_calc->addDependency($table3->getName(), $table4->getName(), 1);
-        $this->_calc->addDependency($table5->getName(), $table1->getName(), 1);
+        $this->calculator->addDependency($table1->getName(), $table2->getName(), 1);
+        $this->calculator->addDependency($table2->getName(), $table3->getName(), 1);
+        $this->calculator->addDependency($table3->getName(), $table4->getName(), 1);
+        $this->calculator->addDependency($table5->getName(), $table1->getName(), 1);
 
-        $sorted = $this->_calc->sort();
+        $sorted = $this->calculator->sort();
 
         // There is only 1 valid ordering for this constellation
         $correctOrder = [$table5, $table1, $table2, $table3, $table4];
@@ -52,16 +52,16 @@ class CommitOrderCalculatorTest extends DbalTestCase
 
     public function testCommitOrdering2()
     {
-        $table1 = new Table(NodeClass1::class);
-        $table2 = new Table(NodeClass2::class);
+        $table1 = new Table('table1');
+        $table2 = new Table('table2');
 
-        $this->_calc->addNode($table1->getName(), $table1);
-        $this->_calc->addNode($table2->getName(), $table2);
+        $this->calculator->addNode($table1->getName(), $table1);
+        $this->calculator->addNode($table2->getName(), $table2);
 
-        $this->_calc->addDependency($table1->getName(), $table2->getName(), 0);
-        $this->_calc->addDependency($table2->getName(), $table1->getName(), 1);
+        $this->calculator->addDependency($table1->getName(), $table2->getName(), 0);
+        $this->calculator->addDependency($table2->getName(), $table1->getName(), 1);
 
-        $sorted = $this->_calc->sort();
+        $sorted = $this->calculator->sort();
 
         // There is only 1 valid ordering for this constellation
         $correctOrder = [$table2, $table1];
@@ -72,22 +72,22 @@ class CommitOrderCalculatorTest extends DbalTestCase
     public function testCommitOrdering3()
     {
         // this test corresponds to the GH7259Test::testPersistFileBeforeVersion functional test
-        $table1 = new Table(NodeClass1::class);
-        $table2 = new Table(NodeClass2::class);
-        $table3 = new Table(NodeClass3::class);
-        $table4 = new Table(NodeClass4::class);
+        $table1 = new Table('table1');
+        $table2 = new Table('table2');
+        $table3 = new Table('table3');
+        $table4 = new Table('table4');
 
-        $this->_calc->addNode($table1->getName(), $table1);
-        $this->_calc->addNode($table2->getName(), $table2);
-        $this->_calc->addNode($table3->getName(), $table3);
-        $this->_calc->addNode($table4->getName(), $table4);
+        $this->calculator->addNode($table1->getName(), $table1);
+        $this->calculator->addNode($table2->getName(), $table2);
+        $this->calculator->addNode($table3->getName(), $table3);
+        $this->calculator->addNode($table4->getName(), $table4);
 
-        $this->_calc->addDependency($table4->getName(), $table1->getName(), 1);
-        $this->_calc->addDependency($table1->getName(), $table2->getName(), 1);
-        $this->_calc->addDependency($table4->getName(), $table3->getName(), 1);
-        $this->_calc->addDependency($table1->getName(), $table4->getName(), 0);
+        $this->calculator->addDependency($table4->getName(), $table1->getName(), 1);
+        $this->calculator->addDependency($table1->getName(), $table2->getName(), 1);
+        $this->calculator->addDependency($table4->getName(), $table3->getName(), 1);
+        $this->calculator->addDependency($table1->getName(), $table4->getName(), 0);
 
-        $sorted = $this->_calc->sort();
+        $sorted = $this->calculator->sort();
 
         // There is only multiple valid ordering for this constellation, but
         // the class4, class1, class2 ordering is important to break the cycle
@@ -102,9 +102,3 @@ class CommitOrderCalculatorTest extends DbalTestCase
         $this->assertContains($sorted, $correctOrders, '', false, true, true);
     }
 }
-
-class NodeClass1 {}
-class NodeClass2 {}
-class NodeClass3 {}
-class NodeClass4 {}
-class NodeClass5 {}

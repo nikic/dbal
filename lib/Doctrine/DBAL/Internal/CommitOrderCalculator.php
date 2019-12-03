@@ -1,24 +1,8 @@
 <?php
 
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
-
 namespace Doctrine\DBAL\Internal;
+
+use function array_reverse;
 
 /**
  * CommitOrderCalculator implements topological sorting, which is an ordering
@@ -26,16 +10,12 @@ namespace Doctrine\DBAL\Internal;
  * using a depth-first searching (DFS) to traverse the graph built in memory.
  * This algorithm have a linear running time based on nodes (V) and dependency
  * between the nodes (E), resulting in a computational complexity of O(V + E).
- *
- * @since  2.0
- * @author Guilherme Blanco <guilhermeblanco@hotmail.com>
- * @author Roman Borschel <roman@code-factory.org>
  */
 class CommitOrderCalculator
 {
-    const NOT_VISITED = 0;
-    const IN_PROGRESS = 1;
-    const VISITED     = 2;
+    public const NOT_VISITED = 0;
+    public const IN_PROGRESS = 1;
+    public const VISITED     = 2;
 
     /**
      * Matrix of nodes (aka. vertex).
@@ -57,7 +37,7 @@ class CommitOrderCalculator
      *
      * @param string $hash
      *
-     * @return boolean
+     * @return bool
      */
     public function hasNode($hash)
     {
@@ -76,9 +56,9 @@ class CommitOrderCalculator
     {
         $vertex = new CommitOrderNode();
 
-        $vertex->hash           = $hash;
-        $vertex->state          = self::NOT_VISITED;
-        $vertex->value          = $node;
+        $vertex->hash  = $hash;
+        $vertex->state = self::NOT_VISITED;
+        $vertex->value = $node;
 
         $this->nodeList[$hash] = $vertex;
     }
@@ -86,16 +66,16 @@ class CommitOrderCalculator
     /**
      * Adds a new dependency (edge) to the graph using their hashes.
      *
-     * @param string  $fromHash
-     * @param string  $toHash
-     * @param integer $weight
+     * @param string $fromHash
+     * @param string $toHash
+     * @param int    $weight
      *
      * @return void
      */
     public function addDependency($fromHash, $toHash, $weight)
     {
         $vertex = $this->nodeList[$fromHash];
-        $edge   = new CommitOrderEdge;
+        $edge   = new CommitOrderEdge();
 
         $edge->from   = $fromHash;
         $edge->to     = $toHash;
@@ -110,7 +90,7 @@ class CommitOrderCalculator
      *
      * {@internal Highly performance-sensitive method.}
      *
-     * @return array
+     * @return array<object>
      */
     public function sort()
     {
@@ -134,10 +114,8 @@ class CommitOrderCalculator
      * Visit a given node definition for reordering.
      *
      * {@internal Highly performance-sensitive method.}
-     *
-     * @param \stdClass $vertex
      */
-    private function visit($vertex)
+    private function visit(CommitOrderNode $vertex)
     {
         $vertex->state = self::IN_PROGRESS;
 
@@ -152,15 +130,16 @@ class CommitOrderCalculator
                 case self::IN_PROGRESS:
                     if (isset($adjacentVertex->dependencyList[$vertex->hash]) &&
                         $adjacentVertex->dependencyList[$vertex->hash]->weight < $edge->weight) {
-
                         // If we have some non-visited dependencies in the in-progress dependency, we
                         // need to visit them before adding the node.
                         foreach ($adjacentVertex->dependencyList as $adjacentEdge) {
                             $adjacentEdgeVertex = $this->nodeList[$adjacentEdge->to];
 
-                            if ($adjacentEdgeVertex->state === self::NOT_VISITED) {
-                                $this->visit($adjacentEdgeVertex);
+                            if ($adjacentEdgeVertex->state !== self::NOT_VISITED) {
+                                continue;
                             }
+
+                            $this->visit($adjacentEdgeVertex);
                         }
 
                         $adjacentVertex->state = self::VISITED;
@@ -174,10 +153,12 @@ class CommitOrderCalculator
             }
         }
 
-        if ($vertex->state !== self::VISITED) {
-            $vertex->state = self::VISITED;
-
-            $this->sortedNodeList[] = $vertex->value;
+        if ($vertex->state === self::VISITED) {
+            return;
         }
+
+        $vertex->state = self::VISITED;
+
+        $this->sortedNodeList[] = $vertex->value;
     }
 }
