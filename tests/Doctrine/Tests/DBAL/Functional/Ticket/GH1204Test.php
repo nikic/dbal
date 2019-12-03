@@ -27,7 +27,7 @@ class GH1204Test extends DbalFunctionalTestCase
         $this->markTestSkipped('Related to SQLite only');
     }
 
-    public function testUnsignedIntegerDetection()
+    public function testSqliteSchemaDiffForeignKeys()
     {
         $schemaManager = $this->connection->getSchemaManager();
 
