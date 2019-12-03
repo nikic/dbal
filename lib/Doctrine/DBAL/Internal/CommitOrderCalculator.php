@@ -41,25 +41,14 @@ class CommitOrderCalculator
      * Matrix of nodes (aka. vertex).
      * Keys are provided hashes and values are the node definition objects.
      *
-     * The node state definition contains the following properties:
-     *
-     * - <b>state</b> (integer)
-     * Whether the node is NOT_VISITED or IN_PROGRESS
-     *
-     * - <b>value</b> (object)
-     * Actual node value
-     *
-     * - <b>dependencyList</b> (array<string>)
-     * Map of node dependencies defined as hashes.
-     *
-     * @var array<\stdClass>
+     * @var array<string,CommitOrderNode>
      */
     private $nodeList = [];
 
     /**
      * Volatile variable holding calculated nodes during sorting process.
      *
-     * @var array
+     * @var array<CommitOrderNode>
      */
     private $sortedNodeList = [];
 
@@ -85,12 +74,11 @@ class CommitOrderCalculator
      */
     public function addNode($hash, $node)
     {
-        $vertex = new \stdClass();
+        $vertex = new CommitOrderNode();
 
         $vertex->hash           = $hash;
         $vertex->state          = self::NOT_VISITED;
         $vertex->value          = $node;
-        $vertex->dependencyList = [];
 
         $this->nodeList[$hash] = $vertex;
     }
@@ -107,7 +95,7 @@ class CommitOrderCalculator
     public function addDependency($fromHash, $toHash, $weight)
     {
         $vertex = $this->nodeList[$fromHash];
-        $edge   = new \stdClass();
+        $edge   = new CommitOrderEdge;
 
         $edge->from   = $fromHash;
         $edge->to     = $toHash;
